@@ -31,11 +31,11 @@ pub trait IntoAsyncIterator {
 /// At the moment it only provides the set of methods that suit my needs.
 #[async_trait]
 pub trait AsyncIterator: Sized + Send {
-    type Item: Send;
+    type Item: Send + Sync;
 
     async fn for_each<O, P, F>(self, callback: F)
     where
         O: Send + 'static,
         P: Future<Output = O> + Send + 'static,
-        F: Fn(Self::Item) -> P + 'static + Send + Sync + std::marker::Copy;
+        F: Fn(Self::Item) -> P + 'static + Send + Sync;
 }

@@ -11,7 +11,7 @@ pub struct VecIterator<T: Send> {
 
 impl<T> IntoAsyncIterator for Vec<T>
 where
-    T: Send + 'static,
+    T: Send + Sync + 'static,
 {
     type Item = T;
     type Iter = VecIterator<T>;
@@ -27,7 +27,7 @@ where
 #[async_trait]
 impl<T> AsyncIterator for VecIterator<T>
 where
-    T: Send + 'static,
+    T: Send + Sync + 'static,
 {
     type Item = T;
 
@@ -35,7 +35,7 @@ where
     where
         O: Send + 'static,
         P: Future<Output = O> + Send + 'static,
-        F: Fn(Self::Item) -> P + Send + Sync + std::marker::Copy + 'static,
+        F: Fn(Self::Item) -> P + Send + Sync + 'static,
     {
         let mut task_manager = TaskManager::with_max_concurrent_tasks(self.max_concurrent_tasks);
 
@@ -44,5 +44,22 @@ where
         }
 
         task_manager.await_tasks().await;
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::{AsyncIterator, IntoAsyncIterator};
+
+    #[tokio::test]
+    async fn test_string_list() {
+        let words: Vec<String> = vec!["hello".into(), "world".into()];
+
+        words
+            .into_async_iter(20)
+            .for_each(|word| async move {
+                println!("{word}");
+            })
+            .await;
     }
 }
