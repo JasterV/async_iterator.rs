@@ -15,22 +15,22 @@ pub mod vec;
 use async_trait::async_trait;
 use std::future::Future;
 
-/// `IntoConcurrentIterator` implements the conversion to a [`ConcurrentIterator`].
+/// `IntoAsyncIterator` implements the conversion to a [`AsyncIterator`].
 ///
-/// By implementing `IntoConcurrentIterator` for a type, you define how it will
+/// By implementing `IntoAsyncIterator` for a type, you define how it will
 /// transformed into an iterator.
-pub trait IntoConcurrentIterator {
-    type Iter: ConcurrentIterator<Item = Self::Item>;
+pub trait IntoAsyncIterator {
+    type Iter: AsyncIterator<Item = Self::Item>;
 
     type Item: Send;
 
-    fn into_concurrent_iter(self, max_concurrent_tasks: usize) -> Self::Iter;
+    fn into_async_iter(self, max_concurrent_tasks: usize) -> Self::Iter;
 }
 
-/// Concurrent version of the standard iterator trait.
+/// Async version of the standard iterator trait.
 /// At the moment it only provides the set of methods that suit my needs.
 #[async_trait]
-pub trait ConcurrentIterator: Sized + Send {
+pub trait AsyncIterator: Sized + Send {
     type Item: Send;
 
     async fn for_each<O, P, F>(self, callback: F)

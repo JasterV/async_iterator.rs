@@ -1,6 +1,6 @@
-//! Implementation of [`ConcurrentIterator`] on [`Vec`]
+//! Implementation of [`AsyncIterator`] on [`Vec`]
 
-use crate::{task_manager::TaskManager, ConcurrentIterator, IntoConcurrentIterator};
+use crate::{task_manager::TaskManager, AsyncIterator, IntoAsyncIterator};
 use async_trait::async_trait;
 use std::future::Future;
 
@@ -9,14 +9,14 @@ pub struct VecIterator<T: Send> {
     max_concurrent_tasks: usize,
 }
 
-impl<T> IntoConcurrentIterator for Vec<T>
+impl<T> IntoAsyncIterator for Vec<T>
 where
     T: Send + 'static,
 {
     type Item = T;
     type Iter = VecIterator<T>;
 
-    fn into_concurrent_iter(self, max_concurrent_tasks: usize) -> Self::Iter {
+    fn into_async_iter(self, max_concurrent_tasks: usize) -> Self::Iter {
         VecIterator {
             vec: self,
             max_concurrent_tasks,
@@ -25,7 +25,7 @@ where
 }
 
 #[async_trait]
-impl<T> ConcurrentIterator for VecIterator<T>
+impl<T> AsyncIterator for VecIterator<T>
 where
     T: Send + 'static,
 {
