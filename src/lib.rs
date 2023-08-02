@@ -1,66 +1,41 @@
-use async_trait::async_trait;
-use std::{error::Error, future::Future, pin::Pin, sync::Arc};
-use tokio::{sync::Semaphore, task::JoinSet};
-use tracing::{error, Instrument};
+//! This is a pet project that aims to provide  a set of Iterator implementations to iterate over a
+//! sequence using async closures.
+//!
+//! It is built on top of Tokio and it only uses tokio primitives for the implementation.
+//!
+//! This is not meant to be a replace for libraries like [Rayon](https://github.com/rayon-rs/rayon), my knowledge on Rust can't compare to
+//! the great minds behind libraries like that. This aims to be a very simple and small codebase to
+//! suit my own needs.
+//!
+//! Feel free to contribute to improve it if you want to also satisfy your own use cases. I will gladly review
+//! and discuss any issues/PRs to make this a proper crate :)
+mod task_manager;
+pub mod vec;
 
+use async_trait::async_trait;
+use std::future::Future;
+
+/// `IntoConcurrentIterator` implements the conversion to a [`ConcurrentIterator`].
+///
+/// By implementing `IntoConcurrentIterator` for a type, you define how it will
+/// transformed into an iterator.
+pub trait IntoConcurrentIterator {
+    type Iter: ConcurrentIterator<Item = Self::Item>;
+
+    type Item: Send;
+
+    fn into_concurrent_iter(self, max_concurrent_tasks: usize) -> Self::Iter;
+}
+
+/// Concurrent version of the standard iterator trait.
+/// At the moment it only provides the set of methods that suit my needs.
 #[async_trait]
 pub trait ConcurrentIterator: Sized + Send {
     type Item: Send;
 
-    async fn for_each<OP, E>(self, max_concurrent_tasks: u8, op: OP)
+    async fn for_each<O, P, F>(self, callback: F)
     where
-        E: Error + Send + 'static,
-        OP: 'static
-            + Sync
-            + Send
-            + Copy
-            + Fn(Self::Item) -> Pin<Box<dyn Future<Output = Result<(), E>> + Send>>;
-}
-
-#[async_trait]
-impl<T> ConcurrentIterator for Vec<T>
-where
-    T: Send + 'static,
-{
-    type Item = T;
-
-    async fn for_each<OP, E>(self, max_concurrent_tasks: u8, op: OP)
-    where
-        E: Error + Send + 'static,
-        OP: 'static
-            + Sync
-            + Send
-            + Copy
-            + Fn(Self::Item) -> Pin<Box<dyn Future<Output = Result<(), E>> + Send>>,
-    {
-        let mut tasks_set = JoinSet::new();
-
-        // We experienced some concurrent requests rate limit errors with some providers such as
-        // Gmail. For this reason we limit the number of concurrent tasks.
-        let semaphore = Arc::new(Semaphore::new(max_concurrent_tasks as usize));
-
-        for elem in self {
-            let semaphore = semaphore.clone();
-            tasks_set.spawn(
-                async move {
-                    let _permit = semaphore
-                        .acquire_owned()
-                        .await
-                        .expect("Tried to acquire permit from an already closed semaphore");
-
-                    op(elem).await
-                }
-                .instrument(tracing::debug_span!("Semaphore acquire").or_current()),
-            );
-        }
-
-        while let Some(res) = tasks_set.join_next().await {
-            match res {
-                Ok(_) => (),
-                Err(error) => {
-                    error!(%error, "Unexpected task error");
-                }
-            }
-        }
-    }
+        O: Send + 'static,
+        P: Future<Output = O> + Send + 'static,
+        F: Fn(Self::Item) -> P + 'static + Send + Sync + std::marker::Copy;
 }
