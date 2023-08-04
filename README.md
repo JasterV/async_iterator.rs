@@ -12,6 +12,6 @@ suit my own needs.
 Feel free to contribute to improve it if you want to also satisfy your own use cases. I will gladly review
 and discuss any issues/PRs to make this a proper crate :)
 
-Well I just realized that an async iterator at the end of the day is just a Stream, and the work I was trying to implement in here like running concurrent tasks with a limit on an iterable type is already implemented in [here](https://docs.rs/futures-util/0.3.28/futures_util/stream/trait.StreamExt.html#method.for_each_concurrent)https://docs.rs/futures-util/0.3.28/futures_util/stream/trait.StreamExt.html#method.for_each_concurrent
+Well I just realized that an async iterator at the end of the day is just a Stream, and the work I was trying to implement in here like running concurrent tasks with a limit on an iterable type is already implemented in [here](https://docs.rs/futures-util/0.3.28/futures_util/stream/trait.StreamExt.html#method.for_each_concurrent)
 
 So this crate will be discontinued thank you all :D
